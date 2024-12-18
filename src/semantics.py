@@ -1,88 +1,88 @@
-# Module to calculate extensions (complete, stable)
 def is_conflict_free(arguments, attacks):
-    """
-    Checks if a set of arguments is conflict-free.
-    """
     for arg1 in arguments:
         for arg2 in arguments:
-            if arg1 != arg2 and (arg1, arg2) in attacks:
+            if (arg1 != arg2) and ((arg1, arg2) in attacks or (arg2, arg1) in attacks):
                 return False
     return True
 
+
 def defends(argument, arguments, attacks):
-    """
-    Checks if a specific argument is defended by a set of arguments.
-    """
     attackers = {att[0] for att in attacks if att[1] == argument}
-    for attacker in attackers:
-        if not any((defender, attacker) in attacks for defender in arguments):
-            return False
-    return True
+    return all(any((defender, attacker) in attacks for defender in arguments) for attacker in attackers)
 
 def compute_stable_extensions(arguments, attacks):
     """
-    Computes all stable extensions.
-    A stable extension is conflict-free and attacks all arguments not in the extension.
+    Calcule toutes les extensions stables : un sous-ensemble est stable s'il est sans conflit
+    et attaque tous les arguments qui ne lui appartiennent pas.
     """
     stable_extensions = []
     subsets = power_set(arguments)
 
     for subset in subsets:
         if is_conflict_free(subset, attacks):
-            # Check if the extension attacks all arguments not in the subset
-            attacks_all_non_members = True
-            for arg in arguments:
-                if arg not in subset and not any((attacker, arg) in attacks for attacker in subset):
-                    attacks_all_non_members = False
+            # Arguments hors du subset
+            outside_arguments = arguments - subset
+
+            # Vérifie si chaque argument hors du subset est attaqué par le subset
+            all_attacked = True
+            for arg in outside_arguments:
+                attacked = any((attacker, arg) in attacks for attacker in subset)
+                if not attacked:
+                    all_attacked = False
                     break
-            if attacks_all_non_members:
+
+            if all_attacked:
                 stable_extensions.append(subset)
 
     return stable_extensions
 
 def compute_complete_extensions(arguments, attacks):
     """
-    Computes all complete extensions.
-    A complete extension is admissible and all defended arguments are part of the extension.
+    Calcule toutes les extensions complètes : un ensemble admissible
+    contenant tous les arguments qu'il défend.
     """
-    admissible_extensions = compute_stable_extensions(arguments, attacks)
-    complete_extensions = [set()] # Empty element
+    complete_extensions = []
+    subsets = power_set(arguments)
 
-    for extension in admissible_extensions:
-        if all(defends(arg, extension, attacks) for arg in extension):
-            complete_extensions.append(extension)
+    for subset in subsets:
+        # Vérifier si le subset est conflict-free
+        if not is_conflict_free(subset, attacks):
+            continue
+
+        # Vérifier si le subset défend tous ses arguments
+        if not all(defends(arg, subset, attacks) for arg in subset):
+            continue
+
+        # Vérifier si tous les arguments défendus par le subset sont dans le subset
+        defended_arguments = {arg for arg in arguments if defends(arg, subset, attacks)}
+        if not defended_arguments.issubset(subset):
+            continue
+
+        # Ajouter à la liste des extensions complètes
+        complete_extensions.append(subset)
 
     return complete_extensions
 
-
-def compute_credulous_acceptance(arguments, attacks, type):
-    if type == "complete":
+def compute_credulous_acceptance(arguments, attacks, extension_type="stable"):
+    if extension_type == "stable":
+        extensions = compute_stable_extensions(arguments, attacks)
+    elif extension_type == "complete":
         extensions = compute_complete_extensions(arguments, attacks)
     else:
-        extensions = compute_stable_extensions(arguments, attacks)
-    credulous_acceptance = set()
-    for ext in extensions:
-        for arg in ext:
-            credulous_acceptance.add(arg)
-    return credulous_acceptance
+        raise ValueError("Invalid extension type. Use 'stable' or 'complete'.")
 
-def compute_skeptical_acceptance(arguments, attacks, type):
-    if  type == "complete":
+    return {arg for ext in extensions for arg in ext}
+
+def compute_skeptical_acceptance(arguments, attacks, extension_type="stable"):
+    if extension_type == "stable":
+        extensions = compute_stable_extensions(arguments, attacks)
+    elif extension_type == "complete":
         extensions = compute_complete_extensions(arguments, attacks)
     else:
-        extensions = compute_stable_extensions(arguments, attacks)
-    skeptical_acceptance = set()
-    for ext in extensions:
-        for arg in ext:
-            if all(arg in ext for ext in extensions):
-                skeptical_acceptance.add(arg)
-    return skeptical_acceptance
+        raise ValueError("Invalid extension type. Use 'stable' or 'complete'.")
+
+    return {arg for arg in arguments if all(arg in ext for ext in extensions)}
 
 def power_set(s):
-    """
-    Generates the power set of a given set.
-    """
     from itertools import chain, combinations
     return [set(comb) for comb in chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))]
-
-

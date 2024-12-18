@@ -26,5 +26,6 @@ def parse_apx(file_path):
                 attack = tuple(line[4:-2].split(','))
                 attacks.append(attack)
     print(f"All arguments: {arguments}") #TODO delete after testing
+    print(f"All attacks: {attacks}") #TODO delete after testing
     return arguments, attacks
 
