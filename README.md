@@ -18,7 +18,7 @@ Welcome to the **Argumentation Framework Solver**! This project is designed to p
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/argumentation-framework-solver.git
+   git clone https://github.com/Evowind/Argumentation_Framework_Solver.git
    cd argumentation-framework-solver
    ```
 2. Install required dependencies:
